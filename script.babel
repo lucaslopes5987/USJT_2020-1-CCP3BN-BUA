@@ -1,0 +1,244 @@
+class Jogo extends React.Component {
+  render() {
+    return (
+      <div className="game">
+        <div className="game-board">
+          <Tabuleiro />
+        </div>
+      </div>
+    );
+  }
+}
+
+class Tabuleiro extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      movimentos: [
+        {
+          quadrados: Array(9).fill(null)
+        }
+      ],
+      jogada: 0,
+      xIsNext: true
+    };
+  }
+
+  render() {
+    const movimentos = this.state.movimentos;
+    const jogada = movimentos[this.state.jogada];
+
+    const jogadas = movimentos.map((value, jogada) => {
+      const desc = jogada ?
+        'Ir para a ' + jogada + "º jogada" :
+        'Inicio do jogo';
+      return (
+        <li key={jogada}>
+          <button onClick={() => this.irPara(jogada)}>{desc}</button>
+        </li>
+      );
+    });
+
+    const vencedor = calculateWinner(jogada.quadrados);
+    let status;
+
+    if (vencedor) {
+      status = 'Vencedor: ' + vencedor;
+    }
+    else {
+      status = 'Jogador: ' + (this.state.xIsNext ? 'X' : 'O');
+    }
+
+    return (
+      <div>
+        <div className="status">{status}</div>
+        <div className="board-row">
+          {this.renderizarQuadrado(jogada, 0)}
+          {this.renderizarQuadrado(jogada, 1)}
+          {this.renderizarQuadrado(jogada, 2)}
+        </div>
+        <div className="board-row">
+          {this.renderizarQuadrado(jogada, 3)}
+          {this.renderizarQuadrado(jogada, 4)}
+          {this.renderizarQuadrado(jogada, 5)}
+        </div>
+        <div className="board-row">
+          {this.renderizarQuadrado(jogada, 6)}
+          {this.renderizarQuadrado(jogada, 7)}
+          {this.renderizarQuadrado(jogada, 8)}
+        </div>
+        <div className="game-info">
+          <ul><button onClick={() => this.reiniciar()}>Reiniciar</button></ul>
+          <ul><button onClick={() => this.jogarAuto()}>Aleatório</button></ul>
+          <ul>{"Movimentos"}</ul>
+          <ul>{jogadas}</ul>
+        </div>
+      </div>
+    );
+  }
+
+  renderizarQuadrado(jogada, i) {
+    return (
+      <Quadrado
+        value={jogada.quadrados[i]}
+        onClick={() => this.handleClick(i)}
+      />
+    );
+  }
+
+  irPara(jogada) {
+    this.setState({
+      jogada: jogada,
+      xIsNext: (jogada % 2) === 0
+    });
+  }
+
+  reiniciar() {
+    this.setState({
+      movimentos: [
+        {
+          quadrados: Array(9).fill(null)
+        }
+      ],
+      jogada: 0,
+      xIsNext: true
+    });
+  }
+
+  jogarAuto() {
+    const movimentos = this.state.movimentos.slice(0, this.state.jogada + 1);
+    const jogadaAtual = movimentos[movimentos.length - 1];
+    const quadrados = jogadaAtual.quadrados.slice();
+
+    if (calculateWinner(quadrados)) {
+      window.alert('Jogo já acabou');
+      return;
+    }
+
+    const lines = [
+      [0, 1, 2],
+      [0, 2, 1],
+      [1, 2, 0],
+      [3, 4, 5],
+      [3, 5, 4],
+      [4, 5, 3],
+      [6, 7, 8],
+      [6, 8, 7],
+      [7, 8, 6],
+      [0, 3, 6],
+      [0, 6, 3],
+      [3, 6, 0],
+      [1, 4, 7],
+      [1, 7, 4],
+      [4, 7, 1],
+      [2, 5, 8],
+      [2, 8, 5],
+      [5, 8, 2],
+      [0, 4, 8],
+      [0, 8, 4],
+      [4, 8, 0],
+      [2, 4, 6],
+      [2, 6, 4],
+      [4, 6, 2],
+    ];
+
+    for (let i = 0; i < lines.length; i++) {
+      const [a, b, c] = lines[i];
+      if (quadrados[a] === 'O' && quadrados[b] === 'O' && quadrados[c] === null) {
+        this.handleClick(c);
+        return;
+      }
+
+      if (quadrados[a] === 'X' && quadrados[b] === 'X' && quadrados[c] === null) {
+        this.handleClick(c);
+        return;
+      }
+    }
+
+    const quadradosVazios = [];
+    for (let i = 0; i < quadrados.length; i++) {
+      if (quadrados[i] === null)
+        quadradosVazios.push(i);
+    }
+
+    this.handleClick(quadradosVazios[Math.floor(Math.random() * quadradosVazios.length)]);
+  }
+
+  handleClick(i) {
+    const movimentos = this.state.movimentos.slice(0, this.state.jogada + 1);
+    const jogadaAtual = movimentos[movimentos.length - 1];
+    const quadrados = jogadaAtual.quadrados.slice();
+    const quadradosVazios = [];
+
+    if (calculateWinner(quadrados)) {
+      window.alert('Jogo já acabou');
+      return;
+    }
+
+    if (quadrados[i]) {
+      window.alert('Quadrado ocupado!')
+      return;
+    }
+
+    for (let i = 0; i < quadrados.length; i++) {
+      if (quadrados[i] === null)
+        quadradosVazios.push(i);
+    }
+
+    if (quadradosVazios.length === 0) {
+      window.alert('Deu empate!')
+      return;
+    }
+
+    quadrados[i] = this.state.xIsNext ? 'X' : 'O';
+
+    this.setState({
+      movimentos: movimentos.concat([
+        {
+          quadrados: quadrados
+        }
+      ]),
+      jogada: movimentos.length,
+      xIsNext: !this.state.xIsNext
+    });
+  }
+}
+
+class Quadrado extends React.Component {
+  render() {
+    return (
+      <button
+        className="quadrado"
+        onClick={() => { this.props.onClick() }}>
+        {this.props.value}
+      </button>
+    );
+  }
+}
+
+function calculateWinner(squares) {
+  const lines = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8],
+    [0, 4, 8],
+    [2, 4, 6],
+  ];
+
+  for (let i = 0; i < lines.length; i++) {
+    const [a, b, c] = lines[i];
+    if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
+      return squares[a];
+    }
+  }
+
+  return null;
+}
+
+ReactDOM.render(
+  <Jogo />,
+  document.getElementById("root")
+);
